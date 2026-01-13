@@ -1,21 +1,24 @@
 [package]
 name = "typst-batch"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
-description = "Typst unofficial library for batch processing — friendly API, shared resources, virtual files, customizable diagnostics"
+description = "Typst helper library for batch processing — friendly API, shared resources, virtual files, customizable diagnostics"
 keywords = ["typst", "compiler", "batch", "world"]
 categories = ["compilers", "text-processing"]
-repository = "https://github.com/tola-ssg/typst-batch"
+repository = "https://github.com/tola-rs/typst-batch"
 
 [features]
-default = ["colored-diagnostics"]
-colored-diagnostics = ["dep:colored"]
+default = ["colored-diagnostics", "scan", "batch"]
+colored-diagnostics = ["dep:owo-colors"]
 svg = ["dep:typst-svg"]
+scan = ["dep:typst-eval"]
+batch = ["dep:rayon"]
 
 [dependencies]
 # Typst core
 typst = "0.14.1"
+typst-eval = { version = "0.14.1", optional = true }
 typst-kit = { version = "0.14.1", features = ["fonts", "packages"] }
 typst-html = "0.14.1"
 typst-svg = { version = "0.14.1", optional = true }
@@ -25,6 +28,7 @@ thiserror = "2.0"
 
 # Concurrency
 parking_lot = "0.12"
+rayon = { version = "1.10", optional = true }
 
 # Utilities
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
@@ -32,7 +36,7 @@ rustc-hash = "2.1"
 serde_json = "1.0"
 
 # Optional
-colored = { version = "3.0", optional = true }
+owo-colors = { version = "4", optional = true, features = ["supports-colors"] }
 
 [dev-dependencies]
 tempfile = "3.10"

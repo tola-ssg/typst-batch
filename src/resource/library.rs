@@ -70,8 +70,8 @@ pub static GLOBAL_LIBRARY: LazyLock<LazyHash<Library>> = LazyLock::new(|| {
 /// // Create library with inputs
 /// let library = create_library_with_inputs(inputs);
 ///
-/// // Use with SystemWorld::with_library()
-/// let world = SystemWorld::new(path, root).with_library(library);
+/// // Use with SharedWorld::with_library()
+/// let world = SharedWorld::new(path, root).with_library(library);
 /// ```
 ///
 /// In your Typst document:
