@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use typst::foundations::Dict;
 
-use super::core::TypstWorld;
+use super::core::{Timestamp, TypstWorld};
 use super::snapshot::FileSnapshot;
 use super::strategy::{CacheStrategy, FontStrategy, LibraryStrategy};
 use crate::resource::library::create_library_with_inputs;
@@ -21,6 +21,7 @@ pub struct WorldBuilder {
     library: LibraryStrategy,
     prelude: Option<String>,
     postlude: Option<String>,
+    timestamp: Option<Timestamp>,
 }
 
 impl WorldBuilder {
@@ -34,6 +35,7 @@ impl WorldBuilder {
             library: LibraryStrategy::Global,
             prelude: None,
             postlude: None,
+            timestamp: None,
         }
     }
 
@@ -155,6 +157,19 @@ impl WorldBuilder {
         self
     }
 
+    // =========================================================================
+    // Timestamp
+    // =========================================================================
+
+    /// Set a fixed timestamp for `datetime.today()`.
+    ///
+    /// If not set, `datetime.today()` returns `None` (compile error).
+    /// This ensures reproducible builds by default.
+    pub fn with_timestamp(mut self, timestamp: Timestamp) -> Self {
+        self.timestamp = Some(timestamp);
+        self
+    }
+
     /// Build the `TypstWorld`.
     ///
     /// # Panics
@@ -163,6 +178,6 @@ impl WorldBuilder {
     pub fn build(self) -> TypstWorld {
         let cache = self.cache.expect("cache strategy must be set");
         let fonts = self.fonts.expect("fonts strategy must be set");
-        TypstWorld::new(&self.main_path, &self.root, cache, fonts, self.library, self.prelude, self.postlude)
+        TypstWorld::new(&self.main_path, &self.root, cache, fonts, self.library, self.prelude, self.postlude, self.timestamp)
     }
 }

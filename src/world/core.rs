@@ -72,6 +72,12 @@ fn empty_fontbook() -> &'static LazyHash<FontBook> {
 // TypstWorld
 // =============================================================================
 
+/// Fixed timestamp for reproducible builds.
+///
+/// If set, `datetime.today()` returns this fixed time.
+/// If not set, `datetime.today()` returns `None`.
+pub type Timestamp = DateTime<Utc>;
+
 /// Unified Typst World with configurable strategies.
 ///
 /// Use `TypstWorld::builder()` for explicit configuration,
@@ -84,7 +90,7 @@ pub struct TypstWorld {
     library: LibraryStrategy,
     prelude: Option<String>,
     postlude: Option<String>,
-    now: OnceLock<DateTime<Utc>>,
+    timestamp: Option<Timestamp>,
 }
 
 impl TypstWorld {
@@ -105,6 +111,7 @@ impl TypstWorld {
         library: LibraryStrategy,
         prelude: Option<String>,
         postlude: Option<String>,
+        timestamp: Option<Timestamp>,
     ) -> Self {
         let root = normalize_path(root);
         let main_abs = normalize_path(main_path);
@@ -122,7 +129,7 @@ impl TypstWorld {
             library,
             prelude,
             postlude,
-            now: OnceLock::new(),
+            timestamp,
         }
     }
 
@@ -285,7 +292,8 @@ impl World for TypstWorld {
     }
 
     fn today(&self, offset: Option<i64>) -> Option<Datetime> {
-        let now = self.now.get_or_init(Utc::now);
+        // Return None if no timestamp is set (for reproducible builds)
+        let now = self.timestamp.as_ref()?;
 
         let with_offset = match offset {
             None => now.with_timezone(&Local).fixed_offset(),

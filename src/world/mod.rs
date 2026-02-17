@@ -9,7 +9,7 @@ mod strategy;
 
 pub use builder::WorldBuilder;
 pub use cache::{clear_thread_local_cache, LocalCache};
-pub use core::TypstWorld;
+pub use core::{Timestamp, TypstWorld};
 pub use path::normalize_path;
 pub use snapshot::{FileSnapshot, SnapshotConfig, SnapshotError};
 pub use strategy::{CacheStrategy, FontStrategy, LibraryStrategy};
