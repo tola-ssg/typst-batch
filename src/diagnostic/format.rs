@@ -44,7 +44,7 @@ pub enum DisplayStyle {
 ///     .with_style(DisplayStyle::Rich)
 ///     .with_snippets(true);
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct DiagnosticOptions {
     /// Whether to use ANSI colors in output.
     pub colored: bool,
@@ -537,19 +537,19 @@ pub fn disable_colors() {
 ///
 /// This function works with pre-resolved diagnostic info and does not
 /// require a World reference.
-pub fn format_info(output: &mut String, info: &DiagnosticInfo, options: &DiagnosticOptions) {
+pub fn format_info(output: &mut String, info: &DiagnosticInfo, options: DiagnosticOptions) {
     let label = match info.severity {
         Severity::Error => "error",
         Severity::Warning => "warning",
     };
-    let paint = get_paint_fn(options, info.severity);
+    let paint = get_paint_fn(&options, info.severity);
 
     match options.style {
         DisplayStyle::Short => {
             format_info_short(output, info, label, &paint);
         }
         DisplayStyle::Rich => {
-            format_info_rich(output, info, label, &paint, options);
+            format_info_rich(output, info, label, &paint, &options);
         }
     }
 }
@@ -832,7 +832,7 @@ fn format_diagnostic_rich<W: World>(
 fn write_snippet(output: &mut String, location: &SpanLocation, paint: &dyn Fn(&str) -> String) {
     let mut writer = SnippetWriter::new(output, |s| paint(s), location.line_num_width());
 
-    writer.write_header(&location.path, location.start_line, location.start_col);
+    writer.write_header(&location.path, location.start_line, location.start_col + 1);
     writer.write_empty_gutter();
 
     if location.is_multiline() {

@@ -214,10 +214,30 @@ impl Diagnostics {
     /// let options = DiagnosticOptions::plain();
     /// println!("{}", diagnostics.with_options(&options));
     /// ```
-    pub fn with_options<'a>(&'a self, options: &'a DiagnosticOptions) -> DiagnosticsDisplay<'a> {
+    pub fn with_options<'a>(&'a self, options: DiagnosticOptions) -> DiagnosticsDisplay<'a> {
         DiagnosticsDisplay {
             diagnostics: self,
             options,
+            max_errors: None,
+        }
+    }
+
+    /// Format with a limit on the number of errors displayed.
+    ///
+    /// This is useful when a single syntax error causes many cascading errors.
+    /// Only the first `max` errors will be shown; warnings are not affected.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// // Show only the first error (useful for syntax errors that cascade)
+    /// println!("{}", diagnostics.with_max_errors(1));
+    /// ```
+    pub fn with_max_errors(&self, max: usize) -> DiagnosticsDisplay<'_> {
+        DiagnosticsDisplay {
+            diagnostics: self,
+            options: DiagnosticOptions::default(),
+            max_errors: Some(max),
         }
     }
 
@@ -317,7 +337,8 @@ impl fmt::Display for Diagnostics {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         DiagnosticsDisplay {
             diagnostics: self,
-            options: &DiagnosticOptions::default(),
+            options: DiagnosticOptions::default(),
+            max_errors: None,
         }
         .fmt(f)
     }
@@ -326,7 +347,8 @@ impl fmt::Display for Diagnostics {
 /// Display wrapper for formatting diagnostics with custom options.
 pub struct DiagnosticsDisplay<'a> {
     diagnostics: &'a Diagnostics,
-    options: &'a DiagnosticOptions,
+    options: DiagnosticOptions,
+    max_errors: Option<usize>,
 }
 
 impl fmt::Display for DiagnosticsDisplay<'_> {
@@ -338,11 +360,29 @@ impl fmt::Display for DiagnosticsDisplay<'_> {
             Severity::Warning => 1,
         });
 
-        for (i, diag) in sorted.iter().enumerate() {
+        // Apply max_errors limit if set
+        let display_items: Vec<_> = if let Some(max) = self.max_errors {
+            let mut error_count = 0;
+            sorted
+                .into_iter()
+                .filter(|d| {
+                    if d.severity == Severity::Error {
+                        error_count += 1;
+                        error_count <= max
+                    } else {
+                        true // Keep all warnings
+                    }
+                })
+                .collect()
+        } else {
+            sorted
+        };
+
+        for (i, diag) in display_items.iter().enumerate() {
             let mut output = String::new();
             format_info(&mut output, diag, self.options);
             f.write_str(&output)?;
-            if i < sorted.len() - 1 {
+            if i < display_items.len() - 1 {
                 f.write_str("\n")?;
             }
         }
@@ -395,7 +435,7 @@ pub struct DiagnosticInfo {
 
 impl DiagnosticInfo {
     /// Format with custom options.
-    pub fn with_options<'a>(&'a self, options: &'a DiagnosticOptions) -> DiagnosticInfoDisplay<'a> {
+    pub fn with_options<'a>(&'a self, options: DiagnosticOptions) -> DiagnosticInfoDisplay<'a> {
         DiagnosticInfoDisplay { info: self, options }
     }
 }
@@ -403,7 +443,7 @@ impl DiagnosticInfo {
 /// Display wrapper for formatting a single diagnostic with custom options.
 pub struct DiagnosticInfoDisplay<'a> {
     info: &'a DiagnosticInfo,
-    options: &'a DiagnosticOptions,
+    options: DiagnosticOptions,
 }
 
 impl fmt::Display for DiagnosticInfoDisplay<'_> {
@@ -416,7 +456,7 @@ impl fmt::Display for DiagnosticInfoDisplay<'_> {
 
 impl fmt::Display for DiagnosticInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.with_options(&DiagnosticOptions::default()).fmt(f)
+        self.with_options(DiagnosticOptions::default()).fmt(f)
     }
 }
 
