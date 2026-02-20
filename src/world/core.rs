@@ -103,6 +103,7 @@ impl TypstWorld {
     // Internal Constructor
     // =========================================================================
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         main_path: &Path,
         root: &Path,

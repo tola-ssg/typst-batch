@@ -20,6 +20,7 @@
 //! Fonts are searched in order:
 //! 1. Custom paths provided at initialization (e.g., project fonts)
 //! 2. System fonts (if enabled)
+//! 3. Embedded fonts (if enabled via `embed-fonts` feature)
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -51,6 +52,7 @@ static GLOBAL_FONTS: OnceLock<(Fonts, LazyHash<FontBook>)> = OnceLock::new();
 ///
 /// let options = FontOptions::new()
 ///     .with_system_fonts(true)
+///     .with_embedded_fonts(true)
 ///     .with_custom_paths(&[
 ///         Path::new("assets/fonts"),
 ///         Path::new("content/fonts"),
@@ -62,6 +64,9 @@ static GLOBAL_FONTS: OnceLock<(Fonts, LazyHash<FontBook>)> = OnceLock::new();
 pub struct FontOptions {
     /// Whether to include system fonts.
     pub include_system_fonts: bool,
+    /// Whether to include embedded fonts (New Computer Modern, etc.).
+    /// Only effective when `embed-fonts` feature is enabled.
+    pub include_embedded_fonts: bool,
     /// Custom font directories to search.
     pub custom_paths: Vec<PathBuf>,
 }
@@ -71,10 +76,12 @@ impl FontOptions {
     ///
     /// Default:
     /// - System fonts: enabled
+    /// - Embedded fonts: enabled (if `embed-fonts` feature is enabled)
     /// - Custom paths: empty
     pub fn new() -> Self {
         Self {
             include_system_fonts: true,
+            include_embedded_fonts: true,
             custom_paths: Vec::new(),
         }
     }
@@ -85,6 +92,15 @@ impl FontOptions {
     /// environments where only specific fonts are needed.
     pub fn with_system_fonts(mut self, include: bool) -> Self {
         self.include_system_fonts = include;
+        self
+    }
+
+    /// Set whether to include embedded fonts.
+    ///
+    /// Embedded fonts include New Computer Modern Math and other default fonts.
+    /// Only effective when `embed-fonts` feature is enabled.
+    pub fn with_embedded_fonts(mut self, include: bool) -> Self {
+        self.include_embedded_fonts = include;
         self
     }
 
@@ -198,6 +214,7 @@ pub fn debug_dump_fonts(fonts: &Fonts) {
 fn init_fonts(font_paths: &[&Path]) -> (Fonts, LazyHash<FontBook>) {
     let options = FontOptions {
         include_system_fonts: true,
+        include_embedded_fonts: true,
         custom_paths: font_paths.iter().map(|p| p.to_path_buf()).collect(),
     };
     init_fonts_impl(&options)
@@ -210,11 +227,14 @@ fn init_fonts_impl(options: &FontOptions) -> (Fonts, LazyHash<FontBook>) {
     let mut searcher = Fonts::searcher();
     // Include system fonts if enabled
     searcher.include_system_fonts(options.include_system_fonts);
+    // Include embedded fonts if enabled (New Computer Modern Math, etc.)
+    #[cfg(feature = "embed-fonts")]
+    searcher.include_embedded_fonts(options.include_embedded_fonts);
 
     // Convert PathBuf to &Path for the API
     let paths: Vec<&Path> = options.custom_paths.iter().map(|p| p.as_path()).collect();
 
-    // Search custom paths and optionally system fonts
+    // Search custom paths and optionally system/embedded fonts
     let fonts = searcher.search_with(&paths);
 
     // DEBUG: Dump font list for debugging

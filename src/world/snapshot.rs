@@ -238,7 +238,7 @@ fn load_source_with_injection(
             result.push_str(prelude);
             result.push('\n');
         }
-        result.push_str(&text);
+        result.push_str(text);
         if let Some(postlude) = &config.postlude {
             result.push('\n');
             result.push_str(postlude);

@@ -1,6 +1,6 @@
 [package]
 name = "typst-batch"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 license = "MIT"
 description = "Typst helper library for batch processing — friendly API, shared resources, virtual files, customizable diagnostics"
@@ -14,6 +14,7 @@ colored-diagnostics = ["dep:owo-colors"]
 svg = ["dep:typst-svg"]
 scan = ["dep:typst-eval"]
 batch = ["dep:rayon"]
+embed-fonts = ["typst-kit/embed-fonts"]
 
 [dependencies]
 # Typst core
