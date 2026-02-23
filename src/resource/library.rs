@@ -13,9 +13,26 @@
 //!
 //! # HTML Feature
 //!
-//! The library is initialized with the `Html` feature enabled, which adds
-//! HTML-specific functions like `#html.elem` for raw HTML output. This is
-//! required for HTML export via `typst-html`.
+//! The library is initialized with the `Html` feature enabled, which:
+//! - Adds HTML-specific functions like `#html.elem`, `#html.frame` for raw HTML output
+//! - Makes `context { target() }` return `"html"` during HTML export (vs `"paged"` for PDF)
+//!
+//! This is required for HTML export via `typst-html`.
+//!
+//! # target() vs sys.inputs.format
+//!
+//! Templates can detect HTML output in two ways:
+//!
+//! 1. **`context { target() }`** - Runtime check, returns `"html"` or `"paged"`
+//!    - Pros: Accurate during Layout phase, returns `"paged"` inside `html.frame()`
+//!    - Cons: Requires `context` block, not evaluated during Eval-only scan phase
+//!
+//! 2. **`sys.inputs.at("format")`** - Static check via injected input
+//!    - Pros: Works without `context`, evaluated during scan phase
+//!    - Cons: Static value, still `"html"` even inside `html.frame()` rendering
+//!
+//! Use `target()` for show rules that use `html.frame()` (to avoid "paged export" warnings).
+//! Use `sys.inputs.format` for show rules that need to work during scan phase (e.g., image).
 
 use std::sync::LazyLock;
 

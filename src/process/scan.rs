@@ -30,8 +30,10 @@ use typst::diag::SourceDiagnostic;
 use typst::engine::{Route, Sink, Traced};
 use typst::foundations::{Content, Dict, Label};
 use typst::introspection::MetadataElem;
+use typst::loading::DataSource;
 use typst::model::{Destination, HeadingElem, LinkElem, LinkTarget};
 use typst::utils::PicoStr;
+use typst::visualize::ImageElem;
 use typst::World;
 use typst::ROUTINES;
 use typst_html::{HtmlAttr, HtmlElem};
@@ -263,6 +265,17 @@ impl Extractor for LinkExtractor {
                 });
             }
         }
+
+        // Extract image source paths
+        if let Some(image) = elem.to_packed::<ImageElem>() {
+            if let DataSource::Path(path) = &image.source.source {
+                self.links.push(Link {
+                    dest: path.to_string(),
+                    source: LinkSource::Image,
+                });
+            }
+        }
+
         ControlFlow::Continue(())
     }
 
@@ -289,6 +302,8 @@ pub enum LinkSource {
     Href,
     /// From `src` attribute.
     Src,
+    /// From `#image()` element source path.
+    Image,
 }
 
 impl Link {
@@ -514,6 +529,30 @@ mod tests {
         assert_eq!(links.len(), 2);
         assert!(links.iter().any(|l| l.is_http()));
         assert!(links.iter().any(|l| l.is_site_root()));
+    }
+
+    #[test]
+    fn test_extract_image_links() {
+        let dir = TempDir::new().unwrap();
+
+        // Create a dummy image file
+        let img_path = dir.path().join("test.png");
+        fs::write(&img_path, &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]).unwrap();
+
+        let file = dir.path().join("test.typ");
+        fs::write(
+            &file,
+            r#"#image("test.png")"#,
+        )
+        .unwrap();
+
+        let result = Scanner::new(dir.path()).scan(&file).unwrap();
+        let links = result.extract(LinkExtractor::new());
+
+        eprintln!("links: {:?}", links);
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].source, LinkSource::Image);
+        assert!(links[0].dest.contains("test.png"));
     }
 
     #[test]

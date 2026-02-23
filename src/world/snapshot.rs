@@ -9,7 +9,7 @@ use typst::foundations::Bytes;
 use typst::syntax::{FileId, Source, VirtualPath};
 
 use super::path::normalize_path;
-use crate::resource::file::{decode_utf8, file_id_from_path};
+use crate::resource::file::{decode_utf8, file_id_from_path, read_with_global_virtual};
 
 /// Error when building a file snapshot.
 #[derive(Debug)]
@@ -226,9 +226,7 @@ fn load_source_with_injection(
     config: &SnapshotConfig,
     main_ids: &rustc_hash::FxHashSet<FileId>,
 ) -> FileResult<Source> {
-    let vpath = id.vpath().as_rooted_path();
-    let path = root.join(vpath.strip_prefix("/").unwrap_or(vpath));
-    let bytes = std::fs::read(&path).map_err(|e| typst::diag::FileError::from_io(e, &path))?;
+    let bytes = read_with_global_virtual(id, root)?;
     let text = decode_utf8(&bytes)?;
 
     // Inject prelude/postlude for main files
@@ -252,9 +250,7 @@ fn load_source_with_injection(
 }
 
 fn load_source(id: FileId, root: &Path) -> FileResult<Source> {
-    let vpath = id.vpath().as_rooted_path();
-    let path = root.join(vpath.strip_prefix("/").unwrap_or(vpath));
-    let bytes = std::fs::read(&path).map_err(|e| typst::diag::FileError::from_io(e, &path))?;
+    let bytes = read_with_global_virtual(id, root)?;
     let text = decode_utf8(&bytes)?;
     Ok(Source::new(id, text.into()))
 }
