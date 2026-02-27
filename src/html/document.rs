@@ -39,9 +39,38 @@ impl HtmlDocument {
     /// ```
     pub fn query_metadata(&self, label: &str) -> Option<serde_json::Value> {
         let label = Label::new(PicoStr::intern(label))?;
-        let elem = self.0.introspector.query_unique(&Selector::Label(label)).ok()?;
-        elem.to_packed::<MetadataElem>()
-            .and_then(|meta| serde_json::to_value(&meta.value).ok())
+        let elem = self
+            .0
+            .introspector
+            .query_unique(&Selector::Label(label))
+            .ok()?;
+        metadata_to_json(&elem)
+    }
+
+    /// Query all metadata values by label name, preserving document order.
+    ///
+    /// Unlike [`query_metadata`](Self::query_metadata), this method supports
+    /// labels that occur multiple times in the same document.
+    ///
+    /// In Typst:
+    /// `#metadata((id: 1)) <item>`
+    /// `#metadata((id: 2)) <item>`
+    ///
+    /// ```ignore
+    /// let all = doc.query_metadata_all("item");
+    /// assert_eq!(all.len(), 2);
+    /// ```
+    pub fn query_metadata_all(&self, label: &str) -> Vec<serde_json::Value> {
+        let Some(label) = Label::new(PicoStr::intern(label)) else {
+            return Vec::new();
+        };
+
+        self.0
+            .introspector
+            .query(&Selector::Label(label))
+            .iter()
+            .filter_map(metadata_to_json)
+            .collect()
     }
 
     /// Render a frame to SVG.
@@ -115,6 +144,12 @@ impl HtmlDocument {
     pub fn as_inner(&self) -> &typst_html::HtmlDocument {
         &self.0
     }
+}
+
+#[inline]
+fn metadata_to_json(elem: &typst::foundations::Content) -> Option<serde_json::Value> {
+    elem.to_packed::<MetadataElem>()
+        .and_then(|meta| serde_json::to_value(&meta.value).ok())
 }
 
 impl From<typst_html::HtmlDocument> for HtmlDocument {

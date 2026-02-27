@@ -450,6 +450,29 @@ mod tests {
     }
 
     #[test]
+    fn test_query_metadata_all() {
+        let dir = TempDir::new().unwrap();
+        let file = dir.path().join("test.typ");
+        fs::write(
+            &file,
+            r#"#metadata((id: 1, role: "first")) <item>
+#metadata((id: 2, role: "second")) <item>
+= Content"#,
+        )
+        .unwrap();
+
+        let result = Compiler::new(dir.path())
+            .with_path(&file)
+            .compile()
+            .unwrap();
+        let metas = result.document().query_metadata_all("item");
+
+        assert_eq!(metas.len(), 2);
+        assert_eq!(metas[0].get("id").and_then(|v| v.as_i64()), Some(1));
+        assert_eq!(metas[1].get("id").and_then(|v| v.as_i64()), Some(2));
+    }
+
+    #[test]
     #[cfg(feature = "batch")]
     fn test_batch_compile() {
         let dir = TempDir::new().unwrap();
